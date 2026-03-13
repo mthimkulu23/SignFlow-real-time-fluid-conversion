@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignFlow | Real-Time Conversion</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-bg: #0f172a;
+            --accent-color: #38bdf8;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --text-main: #f8fafc;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .navbar {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hero-section {
+            padding: 80px 0;
+            background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.1), transparent);
+        }
+
+        .video-container {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--glass-bg);
+            background: #000;
+        }
+
+        .video-feed {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+        }
+
+        .transcript-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 25px;
+            height: 100%;
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #38bdf8, #818cf8);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        .transcript-text {
+            font-size: 1.25rem;
+            color: #94a3b8;
+            min-height: 150px;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .live-indicator {
+            width: 10px;
+            height: 10px;
+            background: #f87171;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <span style="color: var(--accent-color)">Sign</span>Flow
+            </a>
+            <div class="d-flex">
+                <span class="text-white-50 small">Bridging Communication Gaps</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container hero-section">
+        <div class="row align-items-center mb-5">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-3">Real-Time Sign <br><span style="color: var(--accent-color)">to Text Conversion</span></h1>
+                <p class="lead text-white-50 mb-4">Empowering the deaf and hearing communities with fluid, AI-driven communication technology.</p>
+                <div class="d-flex gap-3">
+                    <button class="btn btn-primary-custom" onclick="scrollToFeed()">Start Detecting</button>
+                    <button class="btn btn-outline-light" style="border-radius: 12px; padding: 12px 30px;" data-bs-toggle="modal" data-bs-target="#howItWorksModal">How it Works</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4" id="mainFeed">
+            <div class="col-lg-8">
+                <div class="video-container">
+                    <img id="videoFeed" src="{{ url_for('main.video_feed') }}" class="video-feed" alt="Camera Feed">
+                    <div class="status-badge">
+                        <span class="live-indicator"></span>LIVE FEED
+                    </div>
+                </div>
+                <div class="mt-4 d-flex gap-2">
+                    <button class="btn btn-sm btn-dark" onclick="toggleFeed()">Pause Feed</button>
+                    <button class="btn btn-sm btn-dark" onclick="clearTranscript()">Clear History</button>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="transcript-card">
+                    <h5 class="fw-bold mb-4">Live Transcript</h5>
+                    <div id="transcript" class="transcript-text">
+                        Waiting for signs...
+                    </div>
+                    <hr class="opacity-10 my-4">
+                    <div class="small text-white-50">
+                        <p class="mb-1"><strong>Model Version:</strong> v1.0.4-Alpha</p>
+                        <p class="mb-1"><strong>Language:</strong> ASL (American Sign Language)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleFeed() {
+            const feed = document.getElementById('videoFeed');
+            if (feed.src.includes('video_feed')) {
+                feed.src = "";
+            } else {
+                feed.src = "{{ url_for('main.video_feed') }}";
+            }
+        }
+
+        function clearTranscript() {
+            document.getElementById('transcript').innerText = "Transcript cleared.";
+        }
+
+        // Poll for status updates
+        async function updateStatus() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+                const transcriptDiv = document.getElementById('transcript');
+                
+                if (data.prediction !== "No sign detected" && data.prediction !== "Waiting for signs...") {
+                    transcriptDiv.innerText = data.prediction;
+                    transcriptDiv.style.color = "#f8fafc"; // Brighter color for active detection
+                } else if (data.prediction === "No sign detected") {
+                    // Stay silent or show subtle status
+                }
+            } catch (error) {
+                console.error("Error fetching status:", error);
+            }
+        }
+
+        // Update every 500ms
+        setInterval(updateStatus, 500);
+    </script>
+</body>
+</html>
