@@ -71,3 +71,15 @@ def status():
     cam = get_camera()
     _, pred = cam.get_frame()
     return {"prediction": pred}
+
+@main_bp.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
+@main_bp.route('/terms')
+def terms():
+    return "<h3>Terms of Service</h3><p>Legal: SignFlow AI is provided for educational purposes. We do not store user data.</p><a href='/'>Back</a>"
+
+@main_bp.route('/contact')
+def contact():
+    return "<h3>Contact Support</h3><p>Support: support@signflow-ai.com</p><a href='/'>Back</a>"
