@@ -164,9 +164,36 @@
         </div>
     </div>
 
+    <!-- How it Works Modal -->
+    <div class="modal fade" id="howItWorksModal" tabindex="-1" aria-labelledby="howItWorksModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title" id="howItWorksModalLabel">How SignFlow Works</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ol class="list-group list-group-flush list-group-numbered bg-dark">
+                        <li class="list-group-item bg-dark text-white border-secondary">Position your hand in front of the camera.</li>
+                        <li class="list-group-item bg-dark text-white border-secondary">Make sure you have good lighting.</li>
+                        <li class="list-group-item bg-dark text-white border-secondary">Our AI will track your hand landmarks and classify the shape.</li>
+                        <li class="list-group-item bg-dark text-white border-secondary">The transcript will update in real-time on the right!</li>
+                    </ol>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-primary-custom" data-bs-dismiss="modal">Got it!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function scrollToFeed() {
+            document.getElementById('mainFeed').scrollIntoView({ behavior: 'smooth' });
+        }
+
         function toggleFeed() {
             const feed = document.getElementById('videoFeed');
             if (feed.src.includes('video_feed')) {

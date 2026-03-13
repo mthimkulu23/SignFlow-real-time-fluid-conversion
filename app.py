@@ -10,5 +10,4 @@ app = Flask(__name__, template_folder='templates', static_folder='templates/stat
 app.register_blueprint(main_bp)
 
 if __name__ == '__main__':
-    # Use threaded=False to help with macOS camera auth issues in development
-    app.run(debug=True, port=5000, threaded=False)
+    app.run(debug=True, port=5000)

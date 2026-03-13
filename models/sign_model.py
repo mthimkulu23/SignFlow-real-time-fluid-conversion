@@ -40,20 +40,24 @@ class SignDetectionModel:
         # Ring: 16 (tip), 14 (base)
         # Pinky: 20 (tip), 18 (base)
         
-        fingers = []
+        # Finger tips: 4, 8, 12, 16, 20
+        # Finger bases: 2, 6, 10, 14, 18
         
-        # Thumb (special case because it moves horizontally relative to palm)
-        if landmarks[4].x < landmarks[3].x: # Assuming right hand mirror
-            fingers.append(1)
-        else:
-            fingers.append(0)
-            
-        # 4 Fingers
-        for tip, base in [(8, 6), (12, 10), (16, 14), (20, 18)]:
-            if landmarks[tip].y < landmarks[base].y:
-                fingers.append(1)
-            else:
-                fingers.append(0)
+        # Helper to check if a finger is extended
+        def is_extended(tip_idx, base_idx):
+            # For index, middle, ring, pinky: tip.y < base.y means extended
+            return landmarks[tip_idx].y < landmarks[base_idx].y
+
+        # Thumb is special: check horizontal distance from index base (MCP)
+        thumb_is_extended = abs(landmarks[4].x - landmarks[5].x) > 0.05
+        
+        fingers = [
+            1 if thumb_is_extended else 0,
+            1 if is_extended(8, 6) else 0,
+            1 if is_extended(12, 10) else 0,
+            1 if is_extended(16, 14) else 0,
+            1 if is_extended(20, 18) else 0
+        ]
                 
         # Classify based on finger count and pattern
         if fingers == [1, 1, 1, 1, 1]:
