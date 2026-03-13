@@ -77,11 +77,11 @@ class SignDetectionModel:
         # Flip frame for mirror effect
         frame = cv2.flip(frame, 1)
         
-        # Convert to RGB and Mediapipe Image format
+       
         img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=img_rgb)
         
-        # Detect landmarks
+    
         detection_result = self.detector.detect(mp_image)
         
         prediction = "Waiting for signs..."
