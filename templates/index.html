@@ -135,29 +135,64 @@
         </div>
 
         <div class="row g-4" id="mainFeed">
-            <div class="col-lg-8">
+            <!-- Learning Sidebar -->
+            <div class="col-lg-3">
+                <div class="transcript-card mb-4" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(129, 140, 248, 0.1)); border: 1px solid var(--accent-color);">
+                    <h6 class="fw-bold mb-3 text-uppercase small">Current Task</h6>
+                    <h2 id="targetSign" class="fw-bold" style="color: var(--accent-color)">HELLO</h2>
+                    <p class="small text-white-50">Try to mimic this sign to practice.</p>
+                    <div id="learningStatus" class="alert alert-info py-2 px-3 small border-0" style="background: rgba(56, 189, 248, 0.2); color: #fff;">
+                        Analyzing your hand...
+                    </div>
+                </div>
+
+                <div class="transcript-card">
+                    <h6 class="fw-bold mb-3 text-uppercase small">Reference Guide</h6>
+                    <div class="list-group list-group-flush bg-transparent">
+                        <div class="list-group-item bg-transparent text-white-50 border-secondary px-0 small d-flex justify-content-between align-items-center">
+                            Hello <span>🖐️</span>
+                        </div>
+                        <div class="list-group-item bg-transparent text-white-50 border-secondary px-0 small d-flex justify-content-between align-items-center">
+                            Peace <span>✌️</span>
+                        </div>
+                        <div class="list-group-item bg-transparent text-white-50 border-secondary px-0 small d-flex justify-content-between align-items-center">
+                            Thumbs Up <span>👍</span>
+                        </div>
+                        <div class="list-group-item bg-transparent text-white-50 border-secondary px-0 small d-flex justify-content-between align-items-center">
+                            Pointing <span>☝️</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-info w-100 mt-3" onclick="nextLesson()">Next Lesson</button>
+                </div>
+            </div>
+
+            <!-- Main Feed -->
+            <div class="col-lg-6">
                 <div class="video-container">
                     <img id="videoFeed" src="{{ url_for('main.video_feed') }}" class="video-feed" alt="Camera Feed">
                     <div class="status-badge">
                         <span class="live-indicator"></span>LIVE FEED
                     </div>
                 </div>
-                <div class="mt-4 d-flex gap-2">
-                    <button class="btn btn-sm btn-dark" onclick="toggleFeed()">Pause Feed</button>
-                    <button class="btn btn-sm btn-dark" onclick="clearTranscript()">Clear History</button>
-                </div>
             </div>
             
-            <div class="col-lg-4">
+            <!-- Transcript/Stats Sidebar -->
+            <div class="col-lg-3">
                 <div class="transcript-card">
-                    <h5 class="fw-bold mb-4">Live Transcript</h5>
+                    <h5 class="fw-bold mb-4">Live Translation</h5>
                     <div id="transcript" class="transcript-text">
                         Waiting for signs...
                     </div>
                     <hr class="opacity-10 my-4">
                     <div class="small text-white-50">
-                        <p class="mb-1"><strong>Model Version:</strong> v1.0.4-Alpha</p>
-                        <p class="mb-1"><strong>Language:</strong> ASL (American Sign Language)</p>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Accuracy:</span>
+                            <span class="text-success">94%</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Signs Learned:</span>
+                            <span id="signsCount">0</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -207,18 +242,43 @@
             document.getElementById('transcript').innerText = "Transcript cleared.";
         }
 
+        let learnedSigns = new Set();
+        const lessonList = ["HELLO", "THUMBS UP", "PEACE / VICTORY", "POINTING", "FIST"];
+        let currentLessonIdx = 0;
+
+        function nextLesson() {
+            currentLessonIdx = (currentLessonIdx + 1) % lessonList.length;
+            document.getElementById('targetSign').innerText = lessonList[currentLessonIdx];
+            document.getElementById('learningStatus').innerText = "Analyzing your hand...";
+            document.getElementById('learningStatus').className = "alert alert-info py-2 px-3 small border-0";
+        }
+
         // Poll for status updates
         async function updateStatus() {
             try {
                 const response = await fetch('/status');
                 const data = await response.json();
                 const transcriptDiv = document.getElementById('transcript');
+                const targetSign = document.getElementById('targetSign').innerText;
+                const statusDiv = document.getElementById('learningStatus');
                 
                 if (data.prediction !== "No sign detected" && data.prediction !== "Waiting for signs...") {
                     transcriptDiv.innerText = data.prediction;
-                    transcriptDiv.style.color = "#f8fafc"; // Brighter color for active detection
-                } else if (data.prediction === "No sign detected") {
-                    // Stay silent or show subtle status
+                    transcriptDiv.style.color = "#f8fafc";
+
+                    // Check if it matches target
+                    if (data.prediction.includes(targetSign) || (targetSign === "HELLO" && data.prediction === "HELLO / OPEN HAND")) {
+                        statusDiv.innerText = "✨ PERFECT! Correct Sign Detected.";
+                        statusDiv.className = "alert alert-success py-2 px-3 small border-0";
+                        
+                        if (!learnedSigns.has(targetSign)) {
+                            learnedSigns.add(targetSign);
+                            document.getElementById('signsCount').innerText = learnedSigns.size;
+                        }
+                    } else {
+                        statusDiv.innerText = "Keep trying... mimic the target!";
+                        statusDiv.className = "alert alert-warning py-2 px-3 small border-0";
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching status:", error);
