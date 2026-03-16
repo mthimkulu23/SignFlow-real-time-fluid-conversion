@@ -129,7 +129,7 @@
             <div class="col-lg-6">
                 <h1 class="display-4 fw-bold mb-3">Real-Time Sign <br><span style="color: var(--accent-color)">to Text Conversion</span></h1>
                 <p class="lead text-white-50 mb-4">Empowering the deaf and hearing communities with fluid, AI-driven communication technology.</p>
-                <div class="d-flex gap-3">
+                <div class="d-flex flex-wrap gap-3">
                     <button class="btn btn-primary-custom" onclick="scrollToFeed()">Start Detecting</button>
                     <button class="btn btn-danger" style="border-radius: 12px; padding: 12px 30px;" onclick="stopFeed()">Stop Detecting</button>
                     <button class="btn btn-outline-light" style="border-radius: 12px; padding: 12px 30px;" data-bs-toggle="modal" data-bs-target="#howItWorksModal">How it Works</button>
@@ -139,7 +139,7 @@
 
         <div class="row g-4" id="mainFeed">
             <!-- Learning Sidebar -->
-            <div class="col-lg-3">
+            <div class="col-lg-3 order-3 order-lg-1">
                 <div class="transcript-card mb-4" style="background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(129, 140, 248, 0.1)); border: 1px solid var(--accent-color);">
                     <h6 class="fw-bold mb-3 text-uppercase small">Current Task</h6>
                     <div class="text-center mb-3">
@@ -173,7 +173,7 @@
             </div>
 
             <!-- Main Feed -->
-            <div class="col-lg-6">
+            <div class="col-lg-6 order-1 order-lg-2">
                 <div class="video-container">
                     <video id="webcam" autoplay playsinline style="display: none;"></video>
                     <canvas id="canvas" style="display: none;"></canvas>
@@ -185,7 +185,7 @@
             </div>
             
             <!-- Transcript/Stats Sidebar -->
-            <div class="col-lg-3">
+            <div class="col-lg-3 order-2 order-lg-3">
                 <div class="transcript-card">
                     <h5 class="fw-bold mb-4">Live Translation</h5>
                     <div id="transcript" class="transcript-text">
