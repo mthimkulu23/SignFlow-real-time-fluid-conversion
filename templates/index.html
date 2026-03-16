@@ -44,11 +44,7 @@
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
             border: 2px solid var(--glass-bg);
             background: #000;
-            min-height: 380px; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1; /* Prevents overlap */
+            min-height: 300px;
         }
 
         .video-feed {
@@ -196,7 +192,7 @@
             <div class="col-lg-3 order-2 order-lg-3">
                 <div class="transcript-card text-center">
                     <h5 class="fw-bold mb-4">Live Translation</h5>
-                    <div id="transcript" class="transcript-text d-flex align-items-center justify-content-center">
+                    <div id="transcript" class="transcript-text">
                         Waiting for signs...
                     </div>
                     <hr class="opacity-10 my-4">
@@ -236,9 +232,11 @@
                 </div>
             </div>
         </div>
+    </div> <!-- Close modal fade -->
 
+    <div class="container">
         <!-- Social Impact / Benefits Section -->
-        <div class="row mt-5 pt-5 border-top border-secondary">
+        <div class="row mt-5 pt-5 border-top border-secondary text-center">
             <div class="col-md-4">
                 <div class="p-4 rounded-4" style="background: rgba(255,255,255,0.03);">
                     <div class="mb-3" style="font-size: 2rem;">🤝</div>
@@ -261,7 +259,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> <!-- Close container -->
 
     <!-- Ad Ethics & Legal Footer -->
     <footer class="mt-5 py-5 border-top border-secondary text-center" style="background: rgba(0, 0, 0, 0.2);">
