@@ -1,76 +1,49 @@
-from flask import Blueprint, render_template, Response
+from flask import Blueprint, render_template, request, jsonify
 import cv2
-import threading
-import time
+import base64
+import re
+import numpy as np
 from models.sign_model import SignDetectionModel
 
-class Camera:
-    def __init__(self):
-        self.camera = cv2.VideoCapture(0)
-        self.model = SignDetectionModel()
-        self.output_frame = None
-        self.prediction = "Waiting for signs..."
-        self.lock = threading.Lock()
-        self.stopped = False
-        self.thread = threading.Thread(target=self.update, args=())
-        self.thread.daemon = True
-        self.thread.start()
-
-    def update(self):
-        while not self.stopped:
-            success, frame = self.camera.read()
-            if success:
-                # Process frame
-                processed_frame, prediction = self.model.predict(frame)
-                with self.lock:
-                    self.output_frame = processed_frame.copy()
-                    self.prediction = prediction
-            else:
-                time.sleep(0.1)
-
-    def get_frame(self):
-        with self.lock:
-            if self.output_frame is None:
-                return None, "Camera starting..."
-            return self.output_frame.copy(), self.prediction
-
-    def stop(self):
-        self.stopped = True
-        self.camera.release()
-
 main_bp = Blueprint('main', __name__)
-global_camera = None
 
-def get_camera():
-    global global_camera
-    if global_camera is None:
-        global_camera = Camera()
-    return global_camera
+# Initialize model once globally
+global_model = None
+
+def get_model():
+    global global_model
+    if global_model is None:
+        global_model = SignDetectionModel()
+    return global_model
 
 @main_bp.route('/')
 def index():
     return render_template('index.html')
 
-def gen_frames():
-    cam = get_camera()
-    while True:
-        frame, pred = cam.get_frame()
-        if frame is not None:
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame_bytes = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-        time.sleep(0.03) # ~30 FPS
+@main_bp.route('/process_frame', methods=['POST'])
+def process_frame():
+    try:
+        data = request.json['image']
+        # Remove the data URL prefix
+        image_data = re.sub('^data:image/.+;base64,', '', data)
+        image_bytes = base64.b64decode(image_data)
+        np_arr = np.frombuffer(image_bytes, np.uint8)
+        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-@main_bp.route('/video_feed')
-def video_feed():
-    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+        model = get_model()
+        processed_frame, prediction = model.predict(frame)
 
-@main_bp.route('/status')
-def status():
-    cam = get_camera()
-    _, pred = cam.get_frame()
-    return {"prediction": pred}
+        # Encode back to base64
+        _, buffer = cv2.imencode('.jpg', processed_frame)
+        encoded_image = base64.b64encode(buffer).decode('utf-8')
+
+        return jsonify({
+            'prediction': prediction,
+            'image': 'data:image/jpeg;base64,' + encoded_image
+        })
+    except Exception as e:
+        print(f"Error processing frame: {e}")
+        return jsonify({'prediction': 'Error processing', 'image': ''}), 500
 
 @main_bp.route('/privacy')
 def privacy():
@@ -78,7 +51,16 @@ def privacy():
 
 @main_bp.route('/terms')
 def terms():
-    return "<h3>Terms of Service</h3><p>Legal: SignFlow AI is provided for educational purposes. We do not store user data.</p><a href='/'>Back</a>"
+    terms_html = """
+    <div style="font-family: sans-serif; padding: 40px; background: #0f172a; color: white; min-height: 100vh;">
+        <h3 style="color: #38bdf8;">Terms of Service</h3>
+        <p>1. Legal: SignFlow AI is provided for educational purposes. We do not store user data.</p>
+        <p>2. Age Restrictions: This service is intended for users 13 years of age or older in compliance with COPPA. We do not knowingly collect information from children under 13.</p>
+        <p>3. AI Accuracy: Sign translation is currently in alpha and should not be relied upon for critical communication.</p>
+        <a href='/' style="color: #38bdf8; text-decoration: none; padding-top: 20px; display: inline-block;">Back to App</a>
+    </div>
+    """
+    return terms_html
 
 @main_bp.route('/contact')
 def contact():

@@ -175,9 +175,11 @@
             <!-- Main Feed -->
             <div class="col-lg-6">
                 <div class="video-container">
-                    <img id="videoFeed" src="{{ url_for('main.video_feed') }}" class="video-feed" alt="Camera Feed">
-                    <div class="status-badge">
-                        <span class="live-indicator"></span>LIVE FEED
+                    <video id="webcam" autoplay playsinline style="display: none;"></video>
+                    <canvas id="canvas" style="display: none;"></canvas>
+                    <img id="videoFeed" class="video-feed" alt="Camera Feed" style="min-height: 380px; background: #000;">
+                    <div class="status-badge" id="cameraStatus">
+                        <span class="live-indicator" style="background: #6b7280;"></span>WAITING FOR CAMERA
                     </div>
                 </div>
             </div>
@@ -281,18 +283,48 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function scrollToFeed() {
-            const feed = document.getElementById('videoFeed');
-            // Re-enable feed if it was stopped
-            if (!feed.src.includes('video_feed')) {
-                feed.src = "{{ url_for('main.video_feed') }}";
+        const webcam = document.getElementById('webcam');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const videoFeed = document.getElementById('videoFeed');
+        const cameraStatus = document.getElementById('cameraStatus');
+        
+        let isDetecting = false;
+        
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                webcam.srcObject = stream;
+                isDetecting = true;
+                cameraStatus.innerHTML = '<span class="live-indicator"></span>LIVE FEED';
+                document.getElementById('learningStatus').innerText = "Analyzing your hand...";
+                document.getElementById('learningStatus').className = "alert alert-info py-2 px-3 small border-0";
+                
+                // start processing loop
+                processFrame();
+                document.getElementById('mainFeed').scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                console.error("Error accessing webcam:", err);
+                alert("Please allow camera access in your browser to use SignFlow.");
             }
-            document.getElementById('mainFeed').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function scrollToFeed() {
+            if (!isDetecting) {
+                startCamera();
+            } else {
+                document.getElementById('mainFeed').scrollIntoView({ behavior: 'smooth' });
+            }
         }
 
         function stopFeed() {
-            const feed = document.getElementById('videoFeed');
-            feed.src = ""; // Stops the browser from requesting the MJPEG stream
+            isDetecting = false;
+            if (webcam.srcObject) {
+                webcam.srcObject.getTracks().forEach(track => track.stop());
+                webcam.srcObject = null;
+            }
+            videoFeed.src = "";
+            cameraStatus.innerHTML = '<span class="live-indicator" style="background:#6b7280;"></span>PAUSED';
             document.getElementById('learningStatus').innerText = "Detection Paused.";
             document.getElementById('learningStatus').className = "alert alert-secondary py-2 px-3 small border-0";
         }
@@ -310,44 +342,75 @@
             currentLessonIdx = (currentLessonIdx + 1) % lessonList.length;
             document.getElementById('targetSign').innerText = lessonList[currentLessonIdx];
             document.getElementById('refImage').src = `/static/img/${imageList[currentLessonIdx]}`;
-            document.getElementById('learningStatus').innerText = "Analyzing your hand...";
-            document.getElementById('learningStatus').className = "alert alert-info py-2 px-3 small border-0";
-        }
-
-        // Poll for status updates
-        async function updateStatus() {
-            try {
-                const response = await fetch('/status');
-                const data = await response.json();
-                const transcriptDiv = document.getElementById('transcript');
-                const targetSign = document.getElementById('targetSign').innerText;
-                const statusDiv = document.getElementById('learningStatus');
-                
-                if (data.prediction !== "No sign detected" && data.prediction !== "Waiting for signs...") {
-                    transcriptDiv.innerText = data.prediction;
-                    transcriptDiv.style.color = "#f8fafc";
-
-                    // Check if it matches target
-                    if (data.prediction.includes(targetSign) || (targetSign === "HELLO" && data.prediction === "HELLO / OPEN HAND")) {
-                        statusDiv.innerText = "✨ PERFECT! Correct Sign Detected.";
-                        statusDiv.className = "alert alert-success py-2 px-3 small border-0";
-                        
-                        if (!learnedSigns.has(targetSign)) {
-                            learnedSigns.add(targetSign);
-                            document.getElementById('signsCount').innerText = learnedSigns.size;
-                        }
-                    } else {
-                        statusDiv.innerText = "Keep trying... mimic the target!";
-                        statusDiv.className = "alert alert-warning py-2 px-3 small border-0";
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching status:", error);
+            if (isDetecting) {
+                document.getElementById('learningStatus').innerText = "Analyzing your hand...";
+                document.getElementById('learningStatus').className = "alert alert-info py-2 px-3 small border-0";
             }
         }
 
-        // Update every 500ms
-        setInterval(updateStatus, 500);
+        function updateUI(prediction) {
+            const transcriptDiv = document.getElementById('transcript');
+            const targetSign = document.getElementById('targetSign').innerText;
+            const statusDiv = document.getElementById('learningStatus');
+            
+            if (prediction !== "No sign detected" && prediction !== "Waiting for signs..." && prediction !== "Error processing") {
+                transcriptDiv.innerText = prediction;
+                transcriptDiv.style.color = "#f8fafc";
+
+                if (prediction.includes(targetSign) || (targetSign === "HELLO" && prediction === "HELLO / OPEN HAND")) {
+                    statusDiv.innerText = "✨ PERFECT! Correct Sign Detected.";
+                    statusDiv.className = "alert alert-success py-2 px-3 small border-0";
+                    
+                    if (!learnedSigns.has(targetSign)) {
+                        learnedSigns.add(targetSign);
+                        document.getElementById('signsCount').innerText = learnedSigns.size;
+                    }
+                } else {
+                    statusDiv.innerText = "Keep trying... mimic the target!";
+                    statusDiv.className = "alert alert-warning py-2 px-3 small border-0";
+                }
+            }
+        }
+
+        function processFrame() {
+            if (!isDetecting) return;
+            
+            if (webcam.videoWidth === 0) {
+                requestAnimationFrame(processFrame);
+                return;
+            }
+
+            canvas.width = webcam.videoWidth;
+            canvas.height = webcam.videoHeight;
+            // Draw mirrored so it acts like a mirror
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(webcam, 0, 0, canvas.width, canvas.height);
+            ctx.setTransform(1, 0, 0, 1, 0, 0); 
+            
+            // Compress image to base64
+            const imageData = canvas.toDataURL('image/jpeg', 0.6);
+            
+            fetch('/process_frame', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!isDetecting) return; // Do not update if paused
+                if (data.image) {
+                    videoFeed.src = data.image; // Show the model-annotated image from backend
+                }
+                updateUI(data.prediction);
+                setTimeout(processFrame, 50); // Loop
+            })
+            .catch(err => {
+                console.error("Frame process error:", err);
+                if (isDetecting) setTimeout(processFrame, 500); // Retry slightly slower on failure
+            });
+        }
+
     </script>
 </body>
 </html>
