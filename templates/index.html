@@ -44,11 +44,18 @@
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
             border: 2px solid var(--glass-bg);
             background: #000;
+            min-height: 380px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1; /* Prevents overlap */
         }
 
         .video-feed {
             width: 100%;
             height: auto;
+            max-height: 600px;
+            object-fit: contain; /* Ensures the whole video is visible */
             display: block;
         }
 
@@ -92,6 +99,7 @@
             font-size: 1.25rem;
             color: #94a3b8;
             min-height: 150px;
+            word-wrap: break-word; /* Ensure long words wrap instead of breaking out */
         }
 
         @keyframes pulse {
